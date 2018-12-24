@@ -107,6 +107,8 @@ public class IOCProcessor extends AbstractProcessor {
                     .addAnnotation(Override.class)
                     .addAnnotation(callSuper)
                     .addModifiers(Modifier.PUBLIC);
+            unbindMethodBuilder.addStatement("$L target = this.target", activityClassName);
+            unbindMethodBuilder.addStatement("this.target = null", activityClassName);
 
             // 构造函数
             MethodSpec.Builder constructorBuilder = MethodSpec.constructorBuilder()
@@ -115,13 +117,20 @@ public class IOCProcessor extends AbstractProcessor {
 
             // for 循环寻找注解的属性，进行注入
             for (Element element : value) {
-                // TextView textView = Utils.findViewById(source, R.id.tv_test1);
-            }
+                // target.textView1 = Utils.findViewById(target, R.id.tv_test1);
+                String fieldName = element.getSimpleName().toString();
+                ClassName utilsName = ClassName.get("com.ljt.ioc", "Utils");
 
+                int resId = element.getAnnotation(BindView.class).value();
+                constructorBuilder.addStatement("this.target.$L = $T.findViewById(target, $L)",
+                        fieldName, utilsName, resId);
+
+                unbindMethodBuilder.addStatement("target.$L = null", fieldName);
+
+            }
 
             classBuilder.addMethod(unbindMethodBuilder.build());
             classBuilder.addMethod(constructorBuilder.build());
-
 
             // 生成类
             try {
